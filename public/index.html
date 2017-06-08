@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<!--
+Copyright (c) 2016 Google Inc.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+<html>
+<head>
+  <meta charset=utf-8 />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Email/Password Authentication Example</title>
+
+  <!-- Material Design Theming -->
+  <link rel="stylesheet" href="https://code.getmdl.io/1.1.3/material.orange-indigo.min.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+  <script defer src="https://code.getmdl.io/1.1.3/material.min.js"></script>
+
+  <link rel="stylesheet" href="main.css">
+
+  <!-- Import and configure the Firebase SDK -->
+  <!-- These scripts are made available when the app is served or deployed on Firebase Hosting -->
+  <!-- If you do not serve/host your project using Firebase Hosting see https://firebase.google.com/docs/web/setup -->
+  <script src="https://www.gstatic.com/firebasejs/3.9.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/3.9.0/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/3.9.0/firebase-database.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/3.9.0/firebase-messaging.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/3.9.0/firebase.js"></script>
+  <script>
+  // Initialize Firebase
+  var config = {
+    apiKey: "AIzaSyAdGc4TieNOarbXADUuYH-bNe1d_Bk2sqc",
+    authDomain: "in1-6bd75.firebaseapp.com",
+    databaseURL: "https://in1-6bd75.firebaseio.com",
+    projectId: "in1-6bd75",
+    storageBucket: "in1-6bd75.appspot.com",
+    messagingSenderId: "90993607747"
+  };
+  firebase.initializeApp(config);
+  </script>
+  <script type="text/javascript">
+  /**
+  * Handles the sign in button press.
+  */
+  var rndString = "";
+  document.addEventListener("DOMContentLoaded", function(event) {
+
+      firebase.auth().onAuthStateChanged(function(user) {
+    if (user) {
+     var isAnonymous = user.isAnonymous
+      if (isAnonymous) {
+        firebase.auth().signOut();
+
+      }
+        console.log(isAnonymous);
+    }
+    });
+
+    var stringLength = 8;
+
+    // list containing characters for the random string
+    var stringArray = ['0','1','2','3','4','5','6','7','8','9','a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z','A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z','!','?'];
+    // build a string with random characters
+    for (var i = 1; i < stringLength; i++) {
+      var rndNum = Math.ceil(Math.random() * stringArray.length) - 1;
+      rndString = rndString + stringArray[rndNum];
+    };
+    console.log( rndString );
+    if (  document.getElementById('quickstart-sign-in').textContent =='Sign out' ) {
+      document.getElementById('quickstart-sign-up').style.visibility = 'hidden';
+      document.getElementById('quickstart-password-reset').style.visibility = 'hidden';
+    }
+  });
+
+
+  function toggleSignIn() {
+    if (firebase.auth().currentUser) {
+      // [START signout]
+      firebase.auth().signOut();
+      document.getElementById('quickstart-sign-up').style.visibility = 'visible';
+      document.getElementById('quickstart-password-reset').style.visibility = 'visible';
+      // [END signout]
+    } else {
+
+      document.getElementById('quickstart-sign-up').style.visibility = 'hidden';
+      document.getElementById('quickstart-password-reset').style.visibility = 'hidden';
+      var email = document.getElementById('email').value;
+      var password = document.getElementById('password').value;
+      if (email.length < 4) {
+        alert('Please enter an email address.');
+        return;
+      }
+      if (password.length < 4) {
+        alert('Please enter a password.');
+        return;
+      }
+      // Sign in with email and pass.
+      // [START authwithemail]
+      firebase.auth().signInWithEmailAndPassword(email, password).catch(function(error) {
+        // Handle Errors here.
+        var errorCode = error.code;
+        var errorMessage = error.message;
+        // [START_EXCLUDE]
+        if (errorCode === 'auth/wrong-password') {
+          alert('Wrong password.');
+        } else {
+          alert(errorMessage);
+        }
+        console.log(error);
+        document.getElementById('quickstart-sign-in').disabled = false;
+        // [END_EXCLUDE]
+      });
+      // [END authwithemail]
+    }
+    document.getElementById('quickstart-sign-in').disabled = true;
+  }
+
+  /**
+  * Handles the sign up button press.
+  */
+  function handleSignUp() {
+    var email = document.getElementById('email').value;
+    var password = document.getElementById('password').value;
+    if (email.length < 4) {
+      alert('Please enter an email address.');
+      return;
+    }
+    if (password.length < 4) {
+      alert('Please enter a password.');
+      return;
+    }
+    // Sign in with email and pass.
+    // [START createwithemail]
+    firebase.auth().createUserWithEmailAndPassword(email, password).catch(function(error) {
+      // Handle Errors here.
+      var errorCode = error.code;
+      var errorMessage = error.message;
+      // [START_EXCLUDE]
+      if (errorCode == 'auth/weak-password') {
+        alert('The password is too weak.');
+      } else {
+        alert(errorMessage);
+      }
+      console.log(error);
+      // [END_EXCLUDE]
+    });
+    // [END createwithemail]
+  }
+
+  /**
+  * Sends an email verification to the user.  */
+  function sendEmailVerification() {
+    // [START sendemailverification]
+    firebase.auth().currentUser.sendEmailVerification().then(function() {
+      // Email Verification sent!
+      // [START_EXCLUDE]
+      alert('Email Verification Sent!');
+      // [END_EXCLUDE]
+    });
+    // [END sendemailverification]
+  }
+
+  function sendPasswordReset() {
+    var email = document.getElementById('email').value;
+    // [START sendpasswordemail]
+    firebase.auth().sendPasswordResetEmail(email).then(function() {
+      // Password Reset Email Sent!
+      // [START_EXCLUDE]
+      alert('Password Reset Email Sent!');
+      // [END_EXCLUDE]
+    }).catch(function(error) {
+      // Handle Errors here.
+      var errorCode = error.code;
+      var errorMessage = error.message;
+      // [START_EXCLUDE]
+      if (errorCode == 'auth/invalid-email') {
+        alert(errorMessage);
+      } else if (errorCode == 'auth/user-not-found') {
+        alert(errorMessage);
+      }
+      console.log(error);
+      // [END_EXCLUDE]
+    });
+    // [END sendpasswordemail];
+  }
+
+  /** initApp handles setting up UI event listeners and registering Firebase auth listeners:
+  *  - firebase.auth().onAuthStateChanged: This listener is called when the user is signed in or
+  *    out, and that is where we update the UI.
+  */
+  function initApp() {
+    // Listening for auth state changes.
+    // [START authstatelistener]
+    var message = document.getElementById('message');
+    var sendm = document.getElementById('sendm');
+    var tokenbutton = document.getElementById('tokenbutton');
+    var tokensend  = document.getElementById('token-send');
+    var SelectToken = document.getElementById('Select-Token');
+    var SelectMessage;
+    var tokenSelected;
+    /**
+
+    * Send Message with Token
+    */
+
+    document.getElementById('send-message').style.visibility = 'hidden';
+    firebase.auth().onAuthStateChanged(function(user) {
+      // [START_EXCLUDE silent]
+      document.getElementById('quickstart-verify-email').style.visibility = 'hidden';
+      //document.getElementById('quickstart-account-details').style.visibility = 'hidden';
+      document.getElementById('send-message').style.visibility = 'visible';
+      // [END_EXCLUDE]
+      if (user) {
+        // User is signed in.
+        var displayName = user.displayName;
+        var email = user.email;
+        var emailVerified = user.emailVerified;
+        var photoURL = user.photoURL;
+        var uid = user.uid;
+        var providerData = user.providerData;
+        var DeviceID = '1';
+        var currentdate = new Date();
+        var DBtokenkey= rndString;
+        var datetime =  currentdate.getDate() + "/"
+        + (currentdate.getMonth()+1)  + "/"
+        + currentdate.getFullYear() + "-"
+        + currentdate.getHours() + ":"
+        + currentdate.getMinutes();
+
+        sendm.addEventListener('click', function() {
+          writeData(uid,DeviceID,email,message.value,datetime,DBtokenkey);
+          alert("Mesaj gönderildi");
+        });
+
+
+        //writeUserData(1,displayName,email,sendm);
+        // [START_EXCLUDE]
+        document.getElementById('quickstart-sign-in-status').textContent = 'Signed in';
+        document.getElementById('quickstart-sign-in').textContent = 'Sign out';
+        //	document.getElementById('send-message').style.visibility = 'visible';
+        //    document.getElementById('quickstart-account-details').textContent = JSON.stringify(user, null, '  ');
+        if (!emailVerified) {
+
+          document.getElementById('quickstart-verify-email').style.visibility = 'visible';
+          document.getElementById('quickstart-verify-email').disabled = false;
+        }
+        // [END_EXCLUDE]
+      } else {
+        // User is signed out.
+        // [START_EXCLUDE]
+        document.getElementById('send-message').style.visibility = 'hidden';
+        document.getElementById('quickstart-sign-in-status').textContent = 'Signed out';
+        document.getElementById('quickstart-sign-in').textContent = 'Sign in';
+        //  document.getElementById('quickstart-account-details').textContent = 'null';
+        // [END_EXCLUDE]
+      }
+      // [START_EXCLUDE silent]
+      document.getElementById('quickstart-sign-in').disabled = false;
+      // [END_EXCLUDE]
+    });
+    // [END authstatelistener]
+
+    document.getElementById('quickstart-sign-in').addEventListener('click', toggleSignIn, false);
+    document.getElementById('quickstart-sign-up').addEventListener('click', handleSignUp, false);
+    document.getElementById('quickstart-verify-email').addEventListener('click', sendEmailVerification, false);
+    document.getElementById('quickstart-password-reset').addEventListener('click', sendPasswordReset, false);
+
+
+    var TokeList =  new Array();
+    var base = firebase.database().ref('TokenKeyProp/');
+    base.once('value', function(data) {
+      data.forEach(function(childSnapshot) {
+        var childKey = childSnapshot.key;
+        TokeList.push(childKey);
+
+      });
+      for (var i = 0; i < TokeList.length; i++) {
+        var option = document.createElement("option");
+        option.setAttribute("value", TokeList[i]);
+        option.text = TokeList[i];
+        SelectToken.appendChild(option);
+      }
+      SelectToken.addEventListener('click',function() {
+      tokenSelected=TokeList[SelectToken.selectedIndex];
+      ListenDataList(tokenSelected);
+      });
+    });
+
+
+  }
+
+
+  window.onload = function() {
+    initApp();
+
+  };
+
+  function getListShowing(ChildList,KeyList){
+
+  /**  if (SelectMessage != null){
+      document.getElementById("Select-Message").remove();
+        document.getElementById("textBoxRich").remove();
+    }**/
+    var myDiv = document.getElementById("general-div");
+    var selectList = document.createElement("select");
+    selectList.setAttribute("id", "Select-Message");
+    selectList.setAttribute("class","mdl-textfield__input")
+    myDiv.appendChild(selectList);
+    var textBoxRich =  document.createElement("textarea");
+      textBoxRich.setAttribute("id","textBoxRich");
+      textBoxRich.setAttribute("class","mdl-textfield__Read");
+      myDiv.appendChild(textBoxRich);
+    //Create and append the options
+    for (var i = 0; i < KeyList.length; i++) {
+      var option = document.createElement("option");
+      option.setAttribute("value", KeyList[i]);
+      option.text = "message"+i;
+      selectList.appendChild(option);
+    }
+     SelectMessage= document.getElementById("Select-Message");
+     textBoxRich1= document.getElementById("textBoxRich");
+    SelectMessage.addEventListener('click',function() {
+    textBoxRich1.value=ChildList[SelectMessage.selectedIndex].join("\n");
+    });
+  }
+  function ListenDataList(tokenSelected) {
+    var Devices = firebase.database().ref('TokenKeyProp/'+tokenSelected+'/');
+    var ChildList = new Array();
+    var KeyList =  new Array();
+    var temp = new Array();
+    Devices.once('value', function(data) {
+      data.forEach(function(childSnapshot) {
+        var childKey = childSnapshot.key;
+        KeyList.push(childKey);
+        childSnapshot.forEach(function(snapshot) {
+          var childData = snapshot.val();
+          ChildList.push(childData);
+        });
+        temp.push(ChildList);
+        ChildList=[];
+
+
+        // ...
+      });
+      SelectMessage= document.getElementById("Select-Message");
+      textBoxRich1= document.getElementById("textBoxRich");
+         if (SelectMessage != null){
+            document.getElementById("Select-Message").remove();
+              document.getElementById("textBoxRich").remove();
+          }
+      getListShowing(temp,KeyList);
+    });
+
+  };
+
+  function writeData(ConnDeviceId,DeviceID, email, message, datetime,DBtokenkey) {
+    var ms = message;
+    var Devices = firebase.database().ref('Devices/'+DeviceID+'/');
+    Devices.set({
+      ConnDeviceId:ConnDeviceId,
+      email: email,
+      message:message,
+      timestamp: datetime,
+      TokenKey: DBtokenkey
+    });
+  };
+  function readData(){
+    var ref = firebase.database().ref('Devices/1/TokenKey');
+
+    ref.on("value", function(snapshot) {
+      console.log(snapshot.val());
+    }, function (error) {
+      console.log("Error: " + error.code);
+    });
+    // ...
+
+  };
+  </script>
+</head>
+<body>
+  <div class="demo-layout mdl-layout mdl-js-layout mdl-layout--fixed-header">
+
+    <!-- Header section containing title -->
+    <header class="mdl-layout__header mdl-color-text--white mdl-color--light-blue-700">
+      <div class="mdl-cell mdl-cell--12-col mdl-cell--12-col-tablet mdl-grid">
+        <div class="mdl-layout__header-row mdl-cell mdl-cell--12-col mdl-cell--12-col-tablet mdl-cell--8-col-desktop">
+          <a href="index.html"><h3>Firebase Authentication</h3></a>
+        </div>
+      </div>
+    </header>
+
+    <main class="mdl-layout__content mdl-color--grey-100">
+      <div class="mdl-cell mdl-cell--12-col mdl-cell--12-col-tablet mdl-grid">
+
+        <!-- Container for the demo -->
+        <div class="mdl-card mdl-shadow--2dp mdl-cell mdl-cell--12-col mdl-cell--12-col-tablet mdl-cell--12-col-desktop" style="width: 450px;margin: auto">
+          <div class="mdl-card__title mdl-color--light-blue-600 mdl-color-text--white">
+            <h2 class="mdl-card__title-text">Firebase Email &amp; Password Authentication</h2>
+          </div>
+          <div id="general-div" class="mdl-card__supporting-text mdl-color-text--grey-600">
+            <p>Enter an email and password below and either sign in to an existing account or sign up</p>
+
+            <input class="mdl-textfield__input" style="display:inline;" type="text" id="email" name="email" placeholder="Email"/>
+            &nbsp;&nbsp;&nbsp; <br/><br/>
+            <input class="mdl-textfield__input" style="display:inline;" type="password" id="password" name="password" placeholder="Password"/>
+            <br/><br/>
+            <button disabled class="mdl-button mdl-js-button mdl-button--raised" id="quickstart-sign-in" name="signin">Sign In</button>
+            &nbsp;&nbsp;&nbsp; <br/><br/>
+            <button class="mdl-button mdl-js-button mdl-button--raised" id="quickstart-sign-up" name="signup">Sign Up</button>
+            &nbsp;&nbsp;&nbsp;<br><br>
+            <button class="mdl-button mdl-js-button mdl-button--raised" id="quickstart-password-reset" name="verify-email">Forget Password</button>
+            &nbsp;&nbsp;&nbsp;<br><br>
+            <button class="mdl-button mdl-js-button mdl-button--raised" disabled id="quickstart-verify-email" name="verify-email">Send Email Verification</button>
+
+
+            <!-- Container where we'll display the user details -->
+            <div class="quickstart-user-details-container">
+              Firebase sign-in status: <span id="quickstart-sign-in-status">Unknown</span>
+              <!--<div>Firebase auth <code>currentUser</code> object value:</div>
+
+              <!- <pre><code id="quickstart-account-details">null</code></pre>-->
+              <div id="send-message"> <input class="mdl-textfield__input" style="display:inline;" type="text" id="message" name="message" placeholder="Mesajınız"/>
+                &nbsp;&nbsp;&nbsp; <br/><br/>
+                <button  class="mdl-button mdl-js-button mdl-button--raised" id="sendm" name="sendm">Gönder</button>
+                &nbsp;&nbsp;&nbsp; <br/><br/>		  </div>
+              </div>
+              &nbsp;&nbsp;&nbsp; <br/><br/>
+              <select id="Select-Token" class="mdl-textfield__input"></select>
+            </div>
+          </div>
+
+        </div>
+      </main>
+    </div>
+  </body>
+  </html>
